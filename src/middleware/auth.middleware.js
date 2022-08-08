@@ -2,11 +2,10 @@ const jwt = require('jsonwebtoken');
 
 const errorTypes = require('../constants/error-types')
 const userService = require('../service/user.service')
+const authService = require('../service/auth.service')
 
 const md5password = require('../utils/password-handle')
-
 const { PUBLIC_KEY } = require('../app/config')
-
 const verifyLogin = async(ctx,next) =>{
 
   let {name,password} = ctx.request.body
@@ -18,9 +17,7 @@ const verifyLogin = async(ctx,next) =>{
   
   //判断用户是否存在
   const result = await userService.getUserByName(name)
-  
   const [user] = result
-
   if(!user){
     const error = new Error(errorTypes.USER_DOES_NOT_EXISTS)
     return ctx.app.emit('error',error,ctx)
@@ -55,16 +52,33 @@ const verifyAuth = async(ctx,next) => {
     const result = jwt.verify(token,PUBLIC_KEY,{
       algorithms:["RS256"]
     })
-    // console.log(result);
     ctx.user = result
-    await next()
   } catch (err) {
     const error = new Error(errorTypes.UNAUTHORIZATION)
     ctx.app.emit('error',error,ctx)
   }
+  await next();
+}
+
+const verifyPremission = async (ctx,next) => {
+  console.log('验证权限的middleware,premission~');
+
+  //1.获取参数
+  const {momentId} = ctx.params
+  const {id} = ctx.user
+
+  const isPremission = await authService.checkMoment(momentId,id)
+
+  if(!isPremission){
+    const error = new Error(errorTypes.UNPERMISSION)
+    return ctx.app.emit('error',error,ctx)
+  }
+  await next();
+
 }
 
 module.exports = {
   verifyLogin,
-  verifyAuth
+  verifyAuth,
+  verifyPremission
 }

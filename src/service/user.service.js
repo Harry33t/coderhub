@@ -16,6 +16,10 @@ class userService{
     return result[0]
   }
 
+  async checkMoment(){
+    
+  }
+
 
 }
 
