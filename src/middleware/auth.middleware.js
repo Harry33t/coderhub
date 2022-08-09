@@ -64,16 +64,24 @@ const verifyPremission = async (ctx,next) => {
   console.log('验证权限的middleware,premission~');
 
   //1.获取参数
-  const {momentId} = ctx.params
+  const [resourceKey] = Object.keys(ctx.params)
+  const tableName = resourceKey.replace('Id','')
+  const [resourceId] = Object.values(ctx.params)  //ES8新增
+  
   const {id} = ctx.user
 
-  const isPremission = await authService.checkMoment(momentId,id)
-
-  if(!isPremission){
+  try {
+    const isPermission = await authService.checkResource(tableName,resourceId,id)
+    if(!isPermission){
+      throw new Error()
+    }
+    await next();
+  } catch (err) {
     const error = new Error(errorTypes.UNPERMISSION)
     return ctx.app.emit('error',error,ctx)
   }
-  await next();
+
+  
 
 }
 
